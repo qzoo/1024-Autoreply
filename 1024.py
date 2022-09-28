@@ -8,25 +8,26 @@ from getver import GetVerificationCode
 from multiprocessing import Pool
 from config import config
 import pickle
+import json
 
 class Autoreply:
     result=None
     over=False
     flag=False
     UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.212 Safari/537.36"
-    loginurl = 'http://t66y.com/login.php'
-    url='http://t66y.com/thread0806.php?fid=7&search=today'
+    loginurl = 'https://t66y.com/login.php'
+    url='https://t66y.com/thread0806.php?fid=7&search=today'
     headers={
         'Host': 't66y.com',
         'Proxy-Connection': 'keep-alive',
-        'Referer': 'http://t66y.com/index.php',
+        'Referer': 'https://t66y.com/index.php',
         'Upgrade-Insecure-Requests': '1',
         'User-Agent': UserAgent
     }
     headers1={
         'Host': 't66y.com',
         'Proxy-Connection': 'keep-alive',
-        'Referer': 'http://t66y.com/login.php',
+        'Referer': 'https://t66y.com/login.php',
         'User-Agent': UserAgent
     }
 
@@ -44,8 +45,8 @@ class Autoreply:
                 'pwpwd':  self.password,
                 'hideid': '0',
                 'cktime': '0',
-                'forward': 'http://t66y.com/post.php?',
-                'jumpurl': 'http://t66y.com/post.php?',
+                'forward': 'https://t66y.com/post.php?',
+                'jumpurl': 'https://t66y.com/post.php?',
                 'step': '2'
         }
         login=self.s.post(self.loginurl,headers=self.headers,data=data)
@@ -84,7 +85,7 @@ class Autoreply:
    
     def verifyLoginSuc(self):
         with self.s as s:
-            index = s.get('http://t66y.com/index.php', headers = {
+            index = s.get('https://t66y.com/index.php', headers = {
                 'Host': 't66y.com',
                 'Upgrade-Insecure-Requests': '1',
                 'User-Agent': self.UserAgent
@@ -102,7 +103,7 @@ class Autoreply:
     def getverwebp(self):
         code=random.uniform(0,1)
         code=round(code,16)
-        vercodeurl='http://t66y.com/require/codeimg.php?'+str(code)
+        vercodeurl='https://t66y.com/require/codeimg.php?'+str(code)
         image=self.s.get(vercodeurl,headers=self.headers1)
         f=open('image.webp','wb')
         f.write(image.content)
@@ -164,7 +165,7 @@ class Autoreply:
     def getonelink(todaylist):
         geturl=''
         m=random.randint(0,len(todaylist)-1)
-        geturl='http://t66y.com/'+todaylist[m]
+        geturl='https://t66y.com/'+todaylist[m]
         tid=todaylist[m][16:len(todaylist[m])-5]
         todaylist.remove(todaylist[m])
         #print('请求链接是: '+geturl)
@@ -175,18 +176,23 @@ class Autoreply:
         headers={
         'Host': 't66y.com',
         'Proxy-Connection': 'keep-alive',
-        'Referer': 'http://t66y.com/index.php',
+        'Referer': 'https://t66y.com/index.php',
         'Upgrade-Insecure-Requests': '1',
         'User-Agent': Autoreply.UserAgent
         }
         res=requests.get(url=geturl,headers=headers,cookies=cookies)
+        reply_id = re.findall("<a name=#(\d+)><\/a>", res.text)
+        if len(reply_id)==0:
+            return None
+        else:
+            return reply_id[random.randint(0,len(reply_id)-1)]
 
     @staticmethod
     def getmatch(geturl,cookies):
         headers={
         'Host': 't66y.com',
         'Proxy-Connection': 'keep-alive',
-        'Referer': 'http://t66y.com/index.php',
+        'Referer': 'https://t66y.com/index.php',
         'Upgrade-Insecure-Requests': '1',
         'User-Agent': Autoreply.UserAgent
         }
@@ -219,7 +225,7 @@ class Autoreply:
         'Upgrade-Insecure-Requests': '1',
         'User-Agent': Autoreply.UserAgent
         }
-        posturl='http://t66y.com/post.php?'
+        posturl='https://t66y.com/post.php?'
         data={
             'atc_usesign':'1',
             'atc_convert':'1',
@@ -247,11 +253,11 @@ class Autoreply:
 
     @staticmethod
     def getnumber(cookies):
-        indexurl='http://t66y.com/index.php'
+        indexurl='https://t66y.com/index.php'
         headers={
         'Host': 't66y.com',
         'Proxy-Connection': 'keep-alive',
-        'Referer': 'http://t66y.com/index.php',
+        'Referer': 'https://t66y.com/index.php',
         'Upgrade-Insecure-Requests': '1',
         'User-Agent': Autoreply.UserAgent
         }
@@ -262,6 +268,34 @@ class Autoreply:
         num=re.search(pat,index).group(0)
         num=num.replace('共發表帖子: ','')
         return num
+    
+    @staticmethod
+    def like(id,url,cookies):
+        likeurl='https://t66y.com/api.php'
+        headers={
+        'Accept': 'application/json, text/javascript, */*; q=0.01',
+        'Host': 't66y.com',
+        'Connection': 'keep-alive',
+        'Origin': 'https://t66y.com',
+        'User-Agent': Autoreply.UserAgent,
+        'X-Requested-With': 'XMLhttpRequest',
+        }
+        data={
+            'action': 'clickLike',
+            'id': id,
+            'page': 'h',
+            'json': '1',
+            'url': url
+        }    
+        like=requests.post(likeurl,headers=headers,data=data,cookies=cookies)
+        try:
+            if int(json.loads(like.text)['myMoney']) > 0 :
+                #print("点赞成功")
+                return True
+            return False
+        except:
+            return False
+
 
     @staticmethod
     def main(cookieslist,todaylist,ge):
@@ -269,6 +303,7 @@ class Autoreply:
         n=0
         cookies=cookieslist[ge]
         m=Autoreply.getnumber(cookies)
+        like_flag = False
         suc=False
         print('第'+str(ge+1)+'个账号开始时发表帖子:'+m)
         while n<10 and suc is False:
@@ -284,7 +319,11 @@ class Autoreply:
                     print('第'+str(ge+1)+'个账号回复成功')
                     n=n+1
                     print('第'+str(ge+1)+'个账号休眠'+str(sleeptime)+'s...')
-                    Autoreply.browse(geturl,cookies)
+                    id = Autoreply.browse(geturl,cookies)
+                    if config.get('like',True) and id != False:
+                        temp = Autoreply.like(id,geturl,cookies)
+                        if like_flag != True:
+                            like_flag = temp
                     sleep(sleeptime)
                     print('第'+str(ge+1)+'个账号休眠完成')
                 elif au=='今日已达上限':
@@ -301,6 +340,8 @@ class Autoreply:
         n=Autoreply.getnumber(cookies)
         print('第'+str(ge+1)+'个账号开始时发表帖子:'+m)
         print('第'+str(ge+1)+'个账号结束时发表帖子:'+n)
+        if config.get('like',True):
+            print(f"第{str(ge+1)}个账号点赞状态为{like_flag}")
         print('第'+str(ge+1)+'个账号回复'+str(int(n)-int(m))+'次')
 
 if __name__ == "__main__":
