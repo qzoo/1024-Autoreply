@@ -5,7 +5,7 @@ on:
   push:
     branches:
       - Multi_User
-  schedule:
+#  schedule:
 #    - cron: '* * * * *'
 
 
